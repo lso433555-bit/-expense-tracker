@@ -173,11 +173,12 @@
     .vis-bars { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
     .vis-bar-item { display: flex; align-items: center; gap: 10px; }
     .vis-label {
-      font-size: 0.85rem;
+      font-size: 0.78rem;
       color: var(--text-secondary);
-      width: 40px;
+      width: 58px;
       text-align: right;
       flex-shrink: 0;
+      white-space: nowrap;
     }
     .vis-track {
       flex: 1;
@@ -430,12 +431,12 @@
 
 <script>
 const CATS = [
-  { key: 'fixed',    label: '🏠 고정·주거', short: '고정·주거', sub: '월세, 공과금, 보험, 교통 등', color: '#4f72c4' },
-  { key: 'food',     label: '🍔 식비·카페', short: '식비·카페', sub: '식사, 커피, 디저트',           color: '#f2a34e' },
-  { key: 'hobby',    label: '🛍️ 취미·쇼핑', short: '취미·쇼핑', sub: '의류, 취미, 개인 소비',       color: '#5aad70' },
-  { key: 'relation', label: '🤝 모임·관계', short: '모임·관계', sub: '선물, 모임, 경조사',           color: '#e07ab8' },
-  { key: 'savings',  label: '🏦 저축·투자', short: '저축·투자', sub: '적금, 청약 등',               color: '#3daa94' },
-  { key: 'tithe',    label: '🙏 하나님께',  short: '하나님께',  sub: '십일조, 감사헌금 등',          color: '#e8b830' },
+  { key: 'fixed',    label: '고정·주거', short: '고정·주거', sub: '월세, 공과금, 보험, 교통 등', color: '#4f72c4' },
+  { key: 'food',     label: '식비·카페', short: '식비·카페', sub: '식사, 커피, 디저트',           color: '#f2a34e' },
+  { key: 'hobby',    label: '취미·쇼핑', short: '취미·쇼핑', sub: '의류, 취미, 개인 소비',       color: '#5aad70' },
+  { key: 'relation', label: '모임·관계', short: '모임·관계', sub: '선물, 모임, 경조사',           color: '#e07ab8' },
+  { key: 'savings',  label: '저축·투자', short: '저축·투자', sub: '적금, 청약 등',               color: '#3daa94' },
+  { key: 'tithe',    label: '하나님께',  short: '하나님께',  sub: '십일조, 감사헌금 등',          color: '#e8b830' },
 ];
 
 const QS = [
