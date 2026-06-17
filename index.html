@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>나의 소비패턴 돌아보기</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f4f4f2;
+      --card: #ffffff;
+      --border: #e8e8e5;
+      --text-primary: #111111;
+      --text-secondary: #666666;
+      --text-muted: #aaaaaa;
+      --accent: #3d6bce;
+      --accent-hover: #2d56b0;
+      --positive: #2e9e6b;
+      --negative: #d94f4f;
+      --radius: 14px;
+    }
+
+    body {
+      font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    .container { max-width: 680px; margin: 0 auto; padding: 36px 16px 60px; }
+
+    /* 헤더 */
+    .page-header { margin-bottom: 28px; }
+    .page-header h1 {
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+    .page-header p { font-size: 0.83rem; color: var(--text-muted); }
+
+    /* 탭 */
+    .tab-bar {
+      display: flex;
+      gap: 0;
+      background: var(--card);
+      border-radius: 12px;
+      padding: 4px;
+      margin-bottom: 20px;
+      border: 1px solid var(--border);
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 10px 0;
+      border: none;
+      background: transparent;
+      border-radius: 9px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      font-family: inherit;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .tab-btn.active {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    /* 탭 패널 */
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* 카드 */
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      margin-bottom: 14px;
+      border: 1px solid var(--border);
+    }
+    .card-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+
+    /* 수입 입력 */
+    .income-row { display: flex; align-items: center; gap: 16px; }
+    .income-row span {
+      font-size: 0.92rem;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+    .field { position: relative; flex: 1; }
+    .field input {
+      width: 100%;
+      padding: 11px 40px 11px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      background: #fafaf9;
+      color: var(--text-primary);
+      outline: none;
+      text-align: right;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .field input:focus { border-color: var(--accent); background: #fff; }
+    .field .unit {
+      position: absolute;
+      right: 12px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    /* 지출 목록 */
+    .expense-list { display: flex; flex-direction: column; }
+    .expense-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .expense-row:last-child { border-bottom: none; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .expense-row label {
+      flex: 1;
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+    .expense-row .field { flex: 0 0 136px; }
+
+    /* 차트 */
+    .chart-empty {
+      text-align: center;
+      padding: 36px 0;
+      color: var(--text-muted);
+      font-size: 0.86rem;
+    }
+    .chart-body { display: flex; gap: 28px; align-items: center; flex-wrap: wrap; }
+    .donut-wrap { flex: 0 0 180px; max-width: 180px; }
+    .legend { flex: 1; min-width: 190px; }
+    .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .legend-row:last-child { border-bottom: none; }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .legend-name { flex: 1; font-size: 0.82rem; color: var(--text-secondary); }
+    .legend-pct { font-size: 0.86rem; font-weight: 700; min-width: 44px; text-align: right; }
+    .legend-amt { font-size: 0.74rem; color: var(--text-muted); min-width: 72px; text-align: right; }
+
+    /* 요약 */
+    .summary {
+      display: flex;
+      margin-top: 20px;
+      border-top: 1px solid var(--border);
+      padding-top: 18px;
+    }
+    .summary-cell {
+      flex: 1;
+      text-align: center;
+      padding: 0 8px;
+      border-right: 1px solid var(--border);
+    }
+    .summary-cell:last-child { border-right: none; }
+    .summary-val { font-size: 0.98rem; font-weight: 700; margin-bottom: 3px; }
+    .summary-lbl { font-size: 0.7rem; color: var(--text-muted); }
+    .positive { color: var(--positive); }
+    .negative { color: var(--negative); }
+
+    /* 질문 */
+    .questions { display: flex; flex-direction: column; gap: 20px; }
+    .q-num {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+    .q-text {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+    .q-input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.87rem;
+      font-family: inherit;
+      background: #fafaf9;
+      color: var(--text-primary);
+      resize: vertical;
+      min-height: 52px;
+      outline: none;
+      line-height: 1.55;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .q-input:focus { border-color: var(--accent); background: #fff; }
+
+    /* 버튼 */
+    .btn-group { display: flex; gap: 10px; margin-top: 6px; }
+    .btn {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-secondary {
+      background: var(--card);
+      color: var(--text-primary);
+      border: 1.5px solid var(--border);
+    }
+    .btn-secondary:hover { background: var(--bg); }
+
+    /* 토스트 */
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(16px);
+      background: #111;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 99px;
+      font-size: 0.84rem;
+      opacity: 0;
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 999;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+<div class="container" id="root">
+
+  <div class="page-header">
+    <h1>나의 소비패턴 돌아보기</h1>
+  </div>
+
+  <!-- 탭 바 -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('expense')">지출 입력</button>
+    <button class="tab-btn" onclick="switchTab('reflect')">돌아보기</button>
+  </div>
+
+  <!-- 탭 1: 지출 -->
+  <div class="tab-panel active" id="tab-expense">
+
+    <div class="card">
+      <div class="card-label">월 평균 수입</div>
+      <div class="income-row">
+        <span>월 평균 수입</span>
+        <div class="field">
+          <input type="number" id="income" placeholder="0" min="0" />
+          <span class="unit">원</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">지출 항목</div>
+      <div class="expense-list" id="expenseList"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">지출 비율</div>
+      <div class="chart-empty" id="chartEmpty">금액을 입력하면 비율이 표시됩니다</div>
+      <div id="chartBody" style="display:none">
+        <div class="chart-body">
+          <div class="donut-wrap"><canvas id="donutChart"></canvas></div>
+          <div class="legend" id="legend"></div>
+        </div>
+        <div class="summary" id="summary"></div>
+      </div>
+    </div>
+
+    <div class="btn-group">
+      <button class="btn btn-secondary" onclick="saveData()">저장</button>
+      <button class="btn btn-primary" onclick="saveImage('tab-expense')">이미지로 저장</button>
+    </div>
+
+  </div>
+
+  <!-- 탭 2: 돌아보기 -->
+  <div class="tab-panel" id="tab-reflect">
+
+    <div class="card">
+      <div class="card-label">돌아보기</div>
+      <div class="questions" id="questions"></div>
+    </div>
+
+    <div class="btn-group">
+      <button class="btn btn-secondary" onclick="saveData()">저장</button>
+      <button class="btn btn-primary" onclick="saveImage('tab-reflect')">이미지로 저장</button>
+    </div>
+
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CATS = [
+  { key: 'housing',   label: '주거관련',           sub: '월세, 공과금 등', color: '#4f72c4' },
+  { key: 'fixed',     label: '고정지출',           sub: '통신비, 보험 등', color: '#5fb8e8' },
+  { key: 'food',      label: '식비',               sub: '',               color: '#f2a34e' },
+  { key: 'cafe',      label: '카페',               sub: '',               color: '#b88c4a' },
+  { key: 'hobby',     label: '취미',               sub: '',               color: '#5aad70' },
+  { key: 'shopping',  label: '쇼핑',               sub: '',               color: '#e06060' },
+  { key: 'transport', label: '교통',               sub: '',               color: '#9b6fd4' },
+  { key: 'relation',  label: '관계',               sub: '선물, 모임 등',  color: '#e07ab8' },
+  { key: 'savings',   label: '저축',               sub: '',               color: '#3daa94' },
+  { key: 'tithe',     label: '하나님께 드린 금액', sub: '',               color: '#e8b830' },
+];
+
+const QS = [
+  '가장 많은 비중을 차지하는 영역은?',
+  '예상보다 많이 사용한 영역은?',
+  '가장 아깝지 않았던 지출은?',
+  '가장 후회되는 지출은?',
+  '가장 고민이 많았던 지출은?',
+  '하나님께 드리는 영역은 몇 번째 우선순위인지?',
+];
+
+let chart = null;
+let activeTab = 'expense';
+
+function load() {
+  try { return JSON.parse(localStorage.getItem('sobi_v2') || '{}'); } catch { return {}; }
+}
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', (i === 0 ? 'expense' : 'reflect') === tab);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+}
+
+function buildInputs() {
+  const saved = load();
+  const list = document.getElementById('expenseList');
+  CATS.forEach(c => {
+    const row = document.createElement('div');
+    row.className = 'expense-row';
+    row.innerHTML = `
+      <span class="dot" style="background:${c.color}"></span>
+      <label for="${c.key}">${c.label}${c.sub ? `<span style="color:#bbb;font-size:0.76rem;margin-left:5px">${c.sub}</span>` : ''}</label>
+      <div class="field">
+        <input type="number" id="${c.key}" placeholder="0" min="0" value="${saved[c.key] || ''}" />
+        <span class="unit">원</span>
+      </div>`;
+    list.appendChild(row);
+    row.querySelector('input').addEventListener('input', update);
+  });
+  const inc = document.getElementById('income');
+  inc.value = saved.income || '';
+  inc.addEventListener('input', update);
+}
+
+function buildQuestions() {
+  const saved = load();
+  const wrap = document.getElementById('questions');
+  QS.forEach((q, i) => {
+    const div = document.createElement('div');
+    div.innerHTML = `
+      <div class="q-num">Q${i + 1}</div>
+      <div class="q-text">${q}</div>
+      <textarea class="q-input" id="q${i}" placeholder="생각을 적어보세요">${saved['q' + i] || ''}</textarea>`;
+    wrap.appendChild(div);
+  });
+}
+
+function vals() {
+  return CATS.map(c => ({ ...c, v: Math.max(0, parseFloat(document.getElementById(c.key).value) || 0) }));
+}
+
+function update() {
+  const data = vals();
+  const total = data.reduce((s, d) => s + d.v, 0);
+  const income = Math.max(0, parseFloat(document.getElementById('income').value) || 0);
+
+  if (total === 0) {
+    document.getElementById('chartEmpty').style.display = '';
+    document.getElementById('chartBody').style.display = 'none';
+    return;
+  }
+  document.getElementById('chartEmpty').style.display = 'none';
+  document.getElementById('chartBody').style.display = '';
+
+  if (chart) {
+    chart.data.datasets[0].data = data.map(d => d.v);
+    chart.update();
+  } else {
+    chart = new Chart(document.getElementById('donutChart'), {
+      type: 'doughnut',
+      data: {
+        labels: data.map(d => d.label),
+        datasets: [{ data: data.map(d => d.v), backgroundColor: data.map(d => d.color), borderWidth: 2, borderColor: '#fff', hoverOffset: 4 }]
+      },
+      options: {
+        cutout: '65%',
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.raw.toLocaleString()}원 (${((ctx.raw/total)*100).toFixed(1)}%)` } }
+        },
+        animation: { duration: 300 }
+      }
+    });
+  }
+
+  document.getElementById('legend').innerHTML = data
+    .filter(d => d.v > 0)
+    .sort((a, b) => b.v - a.v)
+    .map(d => `
+      <div class="legend-row">
+        <span class="legend-dot" style="background:${d.color}"></span>
+        <span class="legend-name">${d.label}</span>
+        <span class="legend-pct">${((d.v/total)*100).toFixed(1)}%</span>
+        <span class="legend-amt">${d.v.toLocaleString()}원</span>
+      </div>`).join('');
+
+  const remaining = income - total;
+  document.getElementById('summary').innerHTML = `
+    ${income ? `<div class="summary-cell"><div class="summary-val">${income.toLocaleString()}원</div><div class="summary-lbl">월 수입</div></div>` : ''}
+    <div class="summary-cell"><div class="summary-val">${total.toLocaleString()}원</div><div class="summary-lbl">총 지출</div></div>
+    ${income ? `
+    <div class="summary-cell"><div class="summary-val ${remaining >= 0 ? 'positive' : 'negative'}">${remaining >= 0 ? '+' : ''}${remaining.toLocaleString()}원</div><div class="summary-lbl">잔액</div></div>
+    <div class="summary-cell"><div class="summary-val">${((total/income)*100).toFixed(1)}%</div><div class="summary-lbl">지출률</div></div>` : ''}`;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function saveData() {
+  const obj = { income: document.getElementById('income').value };
+  CATS.forEach(c => { obj[c.key] = document.getElementById(c.key).value; });
+  QS.forEach((_, i) => { obj['q' + i] = document.getElementById('q' + i).value; });
+  localStorage.setItem('sobi_v2', JSON.stringify(obj));
+  showToast('저장되었습니다');
+}
+
+function saveImage(tabId) {
+  showToast('이미지 생성 중...');
+  const el = document.getElementById(tabId);
+  html2canvas(el, {
+    scale: 2,
+    backgroundColor: '#f4f4f2',
+    useCORS: true,
+    logging: false,
+  }).then(canvas => {
+    const a = document.createElement('a');
+    const label = tabId === 'tab-expense' ? '지출' : '돌아보기';
+    a.download = `소비패턴_${label}_${new Date().toLocaleDateString('ko-KR').replace(/\. /g, '-').replace('.', '')}.png`;
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+    showToast('이미지가 저장되었습니다');
+  });
+}
+
+buildInputs();
+buildQuestions();
+update();
+</script>
+</body>
+</html>
