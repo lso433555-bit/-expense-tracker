@@ -97,9 +97,8 @@
     .card-label {
       font-size: 0.68rem;
       font-weight: 700;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.06em;
       color: var(--text-muted);
-      text-transform: uppercase;
       margin-bottom: 16px;
     }
 
@@ -159,7 +158,7 @@
       color: var(--text-muted);
       margin-top: 1px;
     }
-    .expense-row .field { flex: 0 0 120px; }
+    .expense-row .field { flex: 0 0 108px; }
     .expense-row .field input { height: 44px; font-size: 0.95rem; }
 
     /* 차트 */
@@ -175,7 +174,7 @@
     .vis-label {
       font-size: 0.78rem;
       color: var(--text-secondary);
-      width: 58px;
+      width: 64px;
       text-align: right;
       flex-shrink: 0;
       white-space: nowrap;
@@ -431,12 +430,12 @@
 
 <script>
 const CATS = [
-  { key: 'fixed',    label: '고정·주거', short: '고정·주거', sub: '월세, 공과금, 보험, 교통 등', color: '#4f72c4' },
-  { key: 'food',     label: '식비·카페', short: '식비·카페', sub: '식사, 커피, 디저트',           color: '#f2a34e' },
-  { key: 'hobby',    label: '취미·쇼핑', short: '취미·쇼핑', sub: '의류, 취미, 개인 소비',       color: '#5aad70' },
-  { key: 'relation', label: '모임·관계', short: '모임·관계', sub: '선물, 모임, 경조사',           color: '#e07ab8' },
-  { key: 'savings',  label: '저축·투자', short: '저축·투자', sub: '적금, 청약 등',               color: '#3daa94' },
-  { key: 'tithe',    label: '하나님께',  short: '하나님께',  sub: '십일조, 감사헌금 등',          color: '#e8b830' },
+  { key: 'fixed',    label: '고정·주거', sub: '월세, 공과금, 보험, 교통 등', color: '#4f72c4' },
+  { key: 'food',     label: '식비·카페', sub: '식사, 커피, 디저트',           color: '#f2a34e' },
+  { key: 'hobby',    label: '취미·쇼핑', sub: '의류, 취미, 개인 소비',       color: '#5aad70' },
+  { key: 'relation', label: '모임·관계', sub: '선물, 모임, 경조사',           color: '#e07ab8' },
+  { key: 'savings',  label: '저축·투자', sub: '적금, 청약 등',               color: '#3daa94' },
+  { key: 'tithe',    label: '하나님께',  sub: '십일조, 감사헌금 등',          color: '#e8b830' },
 ];
 
 const QS = [
@@ -450,7 +449,10 @@ const QS = [
 
 
 function fmtAmt(n) {
-  if (n >= 10000) return Math.round(n / 10000) + '만원';
+  if (n >= 10000) {
+    const man = n / 10000;
+    return (Number.isInteger(man) ? man : man.toFixed(1)) + '만원';
+  }
   return n.toLocaleString() + '원';
 }
 
@@ -543,7 +545,7 @@ function update() {
     <div class="vis-bars">
       ${active.map(d => `
         <div class="vis-bar-item">
-          <span class="vis-label">${d.short}</span>
+          <span class="vis-label">${d.label}</span>
           <div class="vis-track">
             <div class="vis-fill" style="background:${d.color}" data-width="${(d.v/total*100).toFixed(1)}"></div>
           </div>
@@ -569,10 +571,10 @@ function update() {
 
   const remaining = income - total;
   document.getElementById('summary').innerHTML = `
-    ${income ? `<div class="summary-cell"><div class="summary-val">${income.toLocaleString()}원</div><div class="summary-lbl">월 수입</div></div>` : ''}
-    <div class="summary-cell"><div class="summary-val">${total.toLocaleString()}원</div><div class="summary-lbl">총 지출</div></div>
+    ${income ? `<div class="summary-cell"><div class="summary-val">${fmtAmt(income)}</div><div class="summary-lbl">월 수입</div></div>` : ''}
+    <div class="summary-cell"><div class="summary-val">${fmtAmt(total)}</div><div class="summary-lbl">총 지출</div></div>
     ${income ? `
-    <div class="summary-cell"><div class="summary-val ${remaining >= 0 ? 'positive' : 'negative'}">${remaining >= 0 ? '+' : ''}${remaining.toLocaleString()}원</div><div class="summary-lbl">잔액</div></div>
+    <div class="summary-cell"><div class="summary-val ${remaining >= 0 ? 'positive' : 'negative'}">${remaining >= 0 ? '+' : ''}${fmtAmt(Math.abs(remaining))}</div><div class="summary-lbl">잔액</div></div>
     <div class="summary-cell"><div class="summary-val">${((total/income)*100).toFixed(1)}%</div><div class="summary-lbl">지출률</div></div>` : ''}`;
 }
 
@@ -614,7 +616,7 @@ function saveImage(contentId) {
       a.click();
       showToast('이미지가 저장되었습니다');
     }
-  });
+  }).catch(() => showToast('이미지 생성에 실패했습니다'));
 }
 
 buildInputs();
