@@ -430,16 +430,12 @@
 
 <script>
 const CATS = [
-  { key: 'housing',   label: '주거관련',           short: '주거',  sub: '월세, 공과금 등', color: '#4f72c4' },
-  { key: 'fixed',     label: '고정지출',           short: '고정',  sub: '통신비, 보험 등', color: '#5fb8e8' },
-  { key: 'food',      label: '식비',               short: '식비',  sub: '',               color: '#f2a34e' },
-  { key: 'cafe',      label: '카페',               short: '카페',  sub: '',               color: '#b88c4a' },
-  { key: 'hobby',     label: '취미',               short: '취미',  sub: '',               color: '#5aad70' },
-  { key: 'shopping',  label: '쇼핑',               short: '쇼핑',  sub: '',               color: '#e06060' },
-  { key: 'transport', label: '교통',               short: '교통',  sub: '',               color: '#9b6fd4' },
-  { key: 'relation',  label: '관계',               short: '관계',  sub: '선물, 모임 등',  color: '#e07ab8' },
-  { key: 'savings',   label: '저축',               short: '저축',  sub: '',               color: '#3daa94' },
-  { key: 'tithe',     label: '하나님께 드린 금액', short: '헌금',  sub: '',               color: '#e8b830' },
+  { key: 'fixed',    label: '🏠 고정·주거', short: '고정·주거', sub: '월세, 공과금, 보험, 교통 등', color: '#4f72c4' },
+  { key: 'food',     label: '🍔 식비·카페', short: '식비·카페', sub: '식사, 커피, 디저트',           color: '#f2a34e' },
+  { key: 'hobby',    label: '🛍️ 취미·쇼핑', short: '취미·쇼핑', sub: '의류, 취미, 개인 소비',       color: '#5aad70' },
+  { key: 'relation', label: '🤝 모임·관계', short: '모임·관계', sub: '선물, 모임, 경조사',           color: '#e07ab8' },
+  { key: 'savings',  label: '🏦 저축·투자', short: '저축·투자', sub: '적금, 청약 등',               color: '#3daa94' },
+  { key: 'tithe',    label: '🙏 하나님께',  short: '하나님께',  sub: '십일조, 감사헌금 등',          color: '#e8b830' },
 ];
 
 const QS = [
@@ -463,14 +459,14 @@ function autoResize(el) {
 }
 
 function load() {
-  try { return JSON.parse(localStorage.getItem('sobi_v2') || '{}'); } catch { return {}; }
+  try { return JSON.parse(localStorage.getItem('sobi_v3') || '{}'); } catch { return {}; }
 }
 
 function autoSave() {
   const obj = { income: document.getElementById('income').value };
   CATS.forEach(c => { obj[c.key] = document.getElementById(c.key).value; });
   QS.forEach((_, i) => { obj['q' + i] = document.getElementById('q' + i).value; });
-  localStorage.setItem('sobi_v2', JSON.stringify(obj));
+  localStorage.setItem('sobi_v3', JSON.stringify(obj));
 }
 
 function switchTab(tab) {
