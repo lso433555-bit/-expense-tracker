@@ -279,6 +279,44 @@
     }
     .btn:active { transform: scale(0.98); background: var(--accent-hover); }
 
+    /* 이미지 미리보기 오버레이 */
+    .img-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.82);
+      z-index: 300;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      gap: 16px;
+    }
+    .img-overlay.show { display: flex; }
+    .img-overlay img {
+      max-width: 100%;
+      max-height: 70vh;
+      border-radius: 12px;
+      display: block;
+    }
+    .img-overlay-hint {
+      color: rgba(255,255,255,0.75);
+      font-size: 0.88rem;
+      text-align: center;
+    }
+    .img-overlay-close {
+      margin-top: 4px;
+      padding: 12px 32px;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 99px;
+      color: #fff;
+      font-size: 0.9rem;
+      font-family: inherit;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
     /* 토스트 */
     .toast {
       position: fixed;
@@ -363,6 +401,12 @@
       <button class="btn" onclick="saveImage('reflect-content')">이미지로 저장</button>
     </div>
   </div>
+
+<div class="img-overlay" id="imgOverlay" onclick="closeOverlay(event)">
+  <img id="overlayImg" src="" alt="저장 이미지" />
+  <div class="img-overlay-hint">이미지를 길게 눌러 저장하세요</div>
+  <button class="img-overlay-close" onclick="document.getElementById('imgOverlay').classList.remove('show')">닫기</button>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -511,6 +555,12 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 2200);
 }
 
+function closeOverlay(e) {
+  if (e.target === document.getElementById('imgOverlay')) {
+    document.getElementById('imgOverlay').classList.remove('show');
+  }
+}
+
 function saveImage(contentId) {
   showToast('이미지 생성 중...');
   const el = document.getElementById(contentId);
@@ -525,12 +575,11 @@ function saveImage(contentId) {
     const label = contentId === 'expense-content' ? '지출' : '돌아보기';
     const filename = `소비패턴_${label}_${new Date().toLocaleDateString('ko-KR').replace(/\. /g, '-').replace('.', '')}.png`;
     const dataUrl = canvas.toDataURL('image/png');
-    // iOS Safari 대응
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     if (isIOS) {
-      const w = window.open('');
-      w.document.write(`<img src="${dataUrl}" style="max-width:100%" />`);
-      showToast('이미지를 길게 눌러 저장하세요');
+      const img = document.getElementById('overlayImg');
+      img.src = dataUrl;
+      document.getElementById('imgOverlay').classList.add('show');
     } else {
       const a = document.createElement('a');
       a.download = filename;
