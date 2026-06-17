@@ -169,32 +169,48 @@
       color: var(--text-muted);
       font-size: 0.88rem;
     }
-    .custom-bars { display: flex; flex-direction: column; gap: 16px; }
-    .bar-item {}
-    .bar-header {
-      display: flex;
-      align-items: baseline;
-      gap: 7px;
-      margin-bottom: 7px;
+    /* 시각 바 */
+    .vis-bars { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+    .vis-bar-item { display: flex; align-items: center; gap: 10px; }
+    .vis-label {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      width: 40px;
+      text-align: right;
+      flex-shrink: 0;
     }
-    .bar-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
-    .bar-label { flex: 1; font-size: 0.88rem; color: var(--text-secondary); }
-    .bar-meta { display: flex; align-items: baseline; gap: 5px; white-space: nowrap; }
-    .bar-pct { font-size: 0.95rem; font-weight: 700; color: var(--text-primary); }
-    .bar-sep { font-size: 0.78rem; color: var(--text-muted); }
-    .bar-amount { font-size: 0.82rem; color: var(--text-muted); }
-    .bar-track {
-      height: 10px;
+    .vis-track {
+      flex: 1;
+      height: 22px;
       background: #efefed;
-      border-radius: 99px;
+      border-radius: 6px;
       overflow: hidden;
     }
-    .bar-fill {
+    .vis-fill {
       height: 100%;
-      border-radius: 99px;
+      border-radius: 6px;
       width: 0;
-      transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     }
+
+    /* 구분선 */
+    .chart-divider { height: 1px; background: var(--border); margin-bottom: 16px; }
+
+    /* 상세 목록 */
+    .detail-list { display: flex; flex-direction: column; }
+    .detail-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-rank { font-size: 0.7rem; color: var(--text-muted); width: 14px; text-align: center; flex-shrink: 0; }
+    .detail-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .detail-label { flex: 1; font-size: 0.87rem; color: var(--text-secondary); }
+    .detail-pct { font-size: 0.9rem; font-weight: 700; min-width: 44px; text-align: right; }
+    .detail-amt { font-size: 0.82rem; color: var(--text-muted); min-width: 52px; text-align: right; }
 
     /* 요약 */
     .summary {
@@ -414,16 +430,16 @@
 
 <script>
 const CATS = [
-  { key: 'housing',   label: '주거관련',           sub: '월세, 공과금 등', color: '#4f72c4' },
-  { key: 'fixed',     label: '고정지출',           sub: '통신비, 보험 등', color: '#5fb8e8' },
-  { key: 'food',      label: '식비',               sub: '',               color: '#f2a34e' },
-  { key: 'cafe',      label: '카페',               sub: '',               color: '#b88c4a' },
-  { key: 'hobby',     label: '취미',               sub: '',               color: '#5aad70' },
-  { key: 'shopping',  label: '쇼핑',               sub: '',               color: '#e06060' },
-  { key: 'transport', label: '교통',               sub: '',               color: '#9b6fd4' },
-  { key: 'relation',  label: '관계',               sub: '선물, 모임 등',  color: '#e07ab8' },
-  { key: 'savings',   label: '저축',               sub: '',               color: '#3daa94' },
-  { key: 'tithe',     label: '하나님께 드린 금액', sub: '',               color: '#e8b830' },
+  { key: 'housing',   label: '주거관련',           short: '주거',  sub: '월세, 공과금 등', color: '#4f72c4' },
+  { key: 'fixed',     label: '고정지출',           short: '고정',  sub: '통신비, 보험 등', color: '#5fb8e8' },
+  { key: 'food',      label: '식비',               short: '식비',  sub: '',               color: '#f2a34e' },
+  { key: 'cafe',      label: '카페',               short: '카페',  sub: '',               color: '#b88c4a' },
+  { key: 'hobby',     label: '취미',               short: '취미',  sub: '',               color: '#5aad70' },
+  { key: 'shopping',  label: '쇼핑',               short: '쇼핑',  sub: '',               color: '#e06060' },
+  { key: 'transport', label: '교통',               short: '교통',  sub: '',               color: '#9b6fd4' },
+  { key: 'relation',  label: '관계',               short: '관계',  sub: '선물, 모임 등',  color: '#e07ab8' },
+  { key: 'savings',   label: '저축',               short: '저축',  sub: '',               color: '#3daa94' },
+  { key: 'tithe',     label: '하나님께 드린 금액', short: '헌금',  sub: '',               color: '#e8b830' },
 ];
 
 const QS = [
@@ -435,6 +451,11 @@ const QS = [
   '하나님께 드리는 영역은 몇 번째 우선순위인지?',
 ];
 
+
+function fmtAmt(n) {
+  if (n >= 10000) return Math.round(n / 10000) + '만원';
+  return n.toLocaleString() + '원';
+}
 
 function autoResize(el) {
   el.style.height = 'auto';
@@ -520,27 +541,31 @@ function update() {
 
   const active = [...data].filter(d => d.v > 0).sort((a, b) => b.v - a.v);
   const container = document.getElementById('customBars');
-  container.innerHTML = active.map(d => {
-    const pct = (d.v / total * 100).toFixed(1);
-    return `
-      <div class="bar-item">
-        <div class="bar-header">
-          <span class="bar-dot" style="background:${d.color}"></span>
-          <span class="bar-label">${d.label}</span>
-          <span class="bar-meta">
-            <span class="bar-pct">${pct}%</span>
-            <span class="bar-sep">·</span>
-            <span class="bar-amount">${d.v.toLocaleString()}원</span>
-          </span>
-        </div>
-        <div class="bar-track">
-          <div class="bar-fill" style="background:${d.color}" data-width="${pct}"></div>
-        </div>
-      </div>`;
-  }).join('');
+
+  container.innerHTML = `
+    <div class="vis-bars">
+      ${active.map(d => `
+        <div class="vis-bar-item">
+          <span class="vis-label">${d.short}</span>
+          <div class="vis-track">
+            <div class="vis-fill" style="background:${d.color}" data-width="${(d.v/total*100).toFixed(1)}"></div>
+          </div>
+        </div>`).join('')}
+    </div>
+    <div class="chart-divider"></div>
+    <div class="detail-list">
+      ${active.map((d, i) => `
+        <div class="detail-row">
+          <span class="detail-rank">${i + 1}</span>
+          <span class="detail-dot" style="background:${d.color}"></span>
+          <span class="detail-label">${d.label}</span>
+          <span class="detail-pct">${(d.v/total*100).toFixed(1)}%</span>
+          <span class="detail-amt">${fmtAmt(d.v)}</span>
+        </div>`).join('')}
+    </div>`;
 
   requestAnimationFrame(() => {
-    container.querySelectorAll('.bar-fill').forEach(el => {
+    container.querySelectorAll('.vis-fill').forEach(el => {
       el.style.width = el.dataset.width + '%';
     });
   });
