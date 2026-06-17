@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>나의 소비패턴 돌아보기</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -170,9 +169,34 @@
       color: var(--text-muted);
       font-size: 0.88rem;
     }
-    .bar-wrap {
-      position: relative;
-      width: 100%;
+    .custom-bars { display: flex; flex-direction: column; gap: 16px; }
+    .bar-item {}
+    .bar-header {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 7px;
+    }
+    .bar-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .bar-label { flex: 1; font-size: 0.88rem; color: var(--text-secondary); }
+    .bar-pct { font-size: 1rem; font-weight: 700; color: var(--text-primary); }
+    .bar-track {
+      height: 10px;
+      background: #efefed;
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: 5px;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      width: 0;
+      transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .bar-amount {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      text-align: right;
     }
 
     /* 요약 */
@@ -356,9 +380,7 @@
         <div class="card-label">지출 비율</div>
         <div class="chart-empty" id="chartEmpty">금액을 입력하면 비율이 표시됩니다</div>
         <div id="chartBody" style="display:none">
-          <div class="bar-wrap" id="barWrap">
-            <canvas id="barChart"></canvas>
-          </div>
+          <div class="custom-bars" id="customBars"></div>
           <div class="summary" id="summary"></div>
         </div>
       </div>
@@ -416,8 +438,6 @@ const QS = [
   '하나님께 드리는 영역은 몇 번째 우선순위인지?',
 ];
 
-let chart = null;
-let activeData = [];
 
 function autoResize(el) {
   el.style.height = 'auto';
@@ -501,72 +521,29 @@ function update() {
   document.getElementById('chartEmpty').style.display = 'none';
   document.getElementById('chartBody').style.display = '';
 
-  activeData = [...data].filter(d => d.v > 0).sort((a, b) => b.v - a.v);
-  const labels = activeData.map(d => d.label);
-  const pcts = activeData.map(d => parseFloat(((d.v / total) * 100).toFixed(1)));
-  const colors = activeData.map(d => d.color);
+  const active = [...data].filter(d => d.v > 0).sort((a, b) => b.v - a.v);
+  const container = document.getElementById('customBars');
+  container.innerHTML = active.map(d => {
+    const pct = (d.v / total * 100).toFixed(1);
+    return `
+      <div class="bar-item">
+        <div class="bar-header">
+          <span class="bar-dot" style="background:${d.color}"></span>
+          <span class="bar-label">${d.label}</span>
+          <span class="bar-pct">${pct}%</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" style="background:${d.color}" data-width="${pct}"></div>
+        </div>
+        <div class="bar-amount">${d.v.toLocaleString()}원</div>
+      </div>`;
+  }).join('');
 
-  // 항목 수에 따라 차트 높이 동적 조정
-  document.getElementById('barWrap').style.height = (activeData.length * 48 + 24) + 'px';
-
-  if (chart) {
-    chart.data.labels = labels;
-    chart.data.datasets[0].data = pcts;
-    chart.data.datasets[0].backgroundColor = colors;
-    chart.update();
-  } else {
-    chart = new Chart(document.getElementById('barChart'), {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [{
-          data: pcts,
-          backgroundColor: colors,
-          borderRadius: 6,
-          borderSkipped: false,
-          barThickness: 26,
-        }]
-      },
-      options: {
-        indexAxis: 'y',
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: ctx => {
-                const item = activeData[ctx.dataIndex];
-                return item ? ` ${item.v.toLocaleString()}원 (${ctx.raw}%)` : '';
-              }
-            }
-          }
-        },
-        scales: {
-          x: {
-            max: 100,
-            grid: { color: '#f0f0ee' },
-            border: { display: false },
-            ticks: {
-              callback: v => v + '%',
-              font: { size: 11 },
-              color: '#bbb',
-              maxTicksLimit: 6,
-            }
-          },
-          y: {
-            grid: { display: false },
-            border: { display: false },
-            ticks: {
-              font: { size: 13 },
-              color: '#444',
-            }
-          }
-        },
-        animation: { duration: 250 }
-      }
+  requestAnimationFrame(() => {
+    container.querySelectorAll('.bar-fill').forEach(el => {
+      el.style.width = el.dataset.width + '%';
     });
-  }
+  });
 
   const remaining = income - total;
   document.getElementById('summary').innerHTML = `
