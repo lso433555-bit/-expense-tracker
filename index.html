@@ -170,25 +170,10 @@
       color: var(--text-muted);
       font-size: 0.88rem;
     }
-    .chart-body { display: flex; flex-direction: column; gap: 20px; }
-    .donut-wrap {
-      width: 180px;
-      max-width: 180px;
-      margin: 0 auto;
+    .bar-wrap {
+      position: relative;
+      width: 100%;
     }
-    .legend { display: flex; flex-direction: column; }
-    .legend-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 9px 0;
-      border-bottom: 1px solid var(--border);
-    }
-    .legend-row:last-child { border-bottom: none; }
-    .legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-    .legend-name { flex: 1; font-size: 0.88rem; color: var(--text-secondary); }
-    .legend-pct { font-size: 0.9rem; font-weight: 700; min-width: 46px; text-align: right; }
-    .legend-amt { font-size: 0.78rem; color: var(--text-muted); min-width: 72px; text-align: right; }
 
     /* 요약 */
     .summary {
@@ -371,9 +356,8 @@
         <div class="card-label">지출 비율</div>
         <div class="chart-empty" id="chartEmpty">금액을 입력하면 비율이 표시됩니다</div>
         <div id="chartBody" style="display:none">
-          <div class="chart-body">
-            <div class="donut-wrap"><canvas id="donutChart"></canvas></div>
-            <div class="legend" id="legend"></div>
+          <div class="bar-wrap" id="barWrap">
+            <canvas id="barChart"></canvas>
           </div>
           <div class="summary" id="summary"></div>
         </div>
@@ -433,6 +417,7 @@ const QS = [
 ];
 
 let chart = null;
+let activeData = [];
 
 function autoResize(el) {
   el.style.height = 'auto';
@@ -516,40 +501,72 @@ function update() {
   document.getElementById('chartEmpty').style.display = 'none';
   document.getElementById('chartBody').style.display = '';
 
+  activeData = [...data].filter(d => d.v > 0).sort((a, b) => b.v - a.v);
+  const labels = activeData.map(d => d.label);
+  const pcts = activeData.map(d => parseFloat(((d.v / total) * 100).toFixed(1)));
+  const colors = activeData.map(d => d.color);
+
+  // 항목 수에 따라 차트 높이 동적 조정
+  document.getElementById('barWrap').style.height = (activeData.length * 48 + 24) + 'px';
+
   if (chart) {
-    chart.data.datasets[0].data = data.map(d => d.v);
+    chart.data.labels = labels;
+    chart.data.datasets[0].data = pcts;
+    chart.data.datasets[0].backgroundColor = colors;
     chart.update();
   } else {
-    chart = new Chart(document.getElementById('donutChart'), {
-      type: 'doughnut',
+    chart = new Chart(document.getElementById('barChart'), {
+      type: 'bar',
       data: {
-        labels: data.map(d => d.label),
-        datasets: [{ data: data.map(d => d.v), backgroundColor: data.map(d => d.color), borderWidth: 2, borderColor: '#fff', hoverOffset: 4 }]
+        labels,
+        datasets: [{
+          data: pcts,
+          backgroundColor: colors,
+          borderRadius: 6,
+          borderSkipped: false,
+          barThickness: 26,
+        }]
       },
       options: {
-        cutout: '65%',
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
-          tooltip: { callbacks: { label: ctx => {
-            const t = ctx.chart.data.datasets[0].data.reduce((s, v) => s + v, 0);
-            return ` ${ctx.raw.toLocaleString()}원 (${t ? ((ctx.raw/t)*100).toFixed(1) : 0}%)`;
-          }}}
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const item = activeData[ctx.dataIndex];
+                return item ? ` ${item.v.toLocaleString()}원 (${ctx.raw}%)` : '';
+              }
+            }
+          }
         },
-        animation: { duration: 300 }
+        scales: {
+          x: {
+            max: 100,
+            grid: { color: '#f0f0ee' },
+            border: { display: false },
+            ticks: {
+              callback: v => v + '%',
+              font: { size: 11 },
+              color: '#bbb',
+              maxTicksLimit: 6,
+            }
+          },
+          y: {
+            grid: { display: false },
+            border: { display: false },
+            ticks: {
+              font: { size: 13 },
+              color: '#444',
+            }
+          }
+        },
+        animation: { duration: 250 }
       }
     });
   }
-
-  document.getElementById('legend').innerHTML = data
-    .filter(d => d.v > 0)
-    .sort((a, b) => b.v - a.v)
-    .map(d => `
-      <div class="legend-row">
-        <span class="legend-dot" style="background:${d.color}"></span>
-        <span class="legend-name">${d.label}</span>
-        <span class="legend-pct">${((d.v/total)*100).toFixed(1)}%</span>
-        <span class="legend-amt">${d.v.toLocaleString()}원</span>
-      </div>`).join('');
 
   const remaining = income - total;
   document.getElementById('summary').innerHTML = `
